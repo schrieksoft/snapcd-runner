@@ -96,6 +96,7 @@ jobs:
 
   dockerize:
     needs: release
+    environment: ${{ github.ref_name }}
     runs-on: ubuntu-24.04
 
     permissions:

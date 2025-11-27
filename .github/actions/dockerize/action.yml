@@ -1,0 +1,41 @@
+name: "Dockerize and Push"
+description: "Build and push a Docker image to GHCR"
+
+inputs:
+  image_name:
+    description: "The name of image to build"
+    required: true
+  registry:
+    description: "Container registry URL"
+    required: false
+    default: "ghcr.io/schrieksoft/snapcd-runner"
+  repository:
+    description: "GitHub repository (org/repo)"
+    required: false
+    default: ${{ github.repository }}
+  version:
+    description: "Version tag for the Docker image"
+    required: true
+  dockerfile:
+    description: "The path to the Dockerfile to use"
+    required: true
+    default: Dockerfile
+
+runs:
+  using: "composite"
+  steps:
+
+    - name: Extract metadata (tags, labels) for Docker
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ inputs.registry }}/${{ inputs.repository }}/${{ env.image_name }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ${{ inputs.dockerfile }}
+        push: true
+        tags: ${{ inputs.registry }}/${{ inputs.image_name }}:${{ inputs.version }}
+        labels: ${{ steps.meta.outputs.labels }}

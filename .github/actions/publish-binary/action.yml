@@ -1,0 +1,31 @@
+name: "Build .NET Project"
+description: "Restores dependencies and publishes a .NET project as a self-contained Linux-x64 binary"
+
+inputs:
+  project_name:
+    description: "The name of the .NET project to build"
+    required: true
+  version:
+    description: "Version to inject into the assembly"
+    required: false
+    default: "0.0.0-dev"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Build and Publish ${{ inputs.project_name }}
+      run: |
+        cd ${{ inputs.project_name }}
+        dotnet restore --verbosity quiet        
+        echo "Publishing as single file executable..."
+        dotnet publish --property WarningLevel=0 --verbosity minimal \
+          -c Release -r linux-x64 --self-contained true \
+          -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true \
+          -p:PublishTrimmed=false \
+          -p:AssemblyVersion=${{ inputs.version }} \
+          -p:FileVersion=${{ inputs.version }} \
+          -p:InformationalVersion=${{ inputs.version }} \
+          -o ./publish
+        cd ..
+        cp ./${{ inputs.project_name }}/publish/${{ inputs.project_name }} ./artifacts/${{ inputs.project_name }}
+      shell: bash

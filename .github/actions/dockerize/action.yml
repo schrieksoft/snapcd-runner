@@ -26,7 +26,7 @@ runs:
       id: meta
       uses: docker/metadata-action@v5
       with:
-        images: ${{ inputs.registry }}/${{ inputs.repository }}
+        images: ${{ inputs.registry }}
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
@@ -34,5 +34,5 @@ runs:
         context: .
         file: ${{ inputs.dockerfile }}
         push: true
-        tags: ${{ inputs.registry }}/${{ inputs.version }}
+        tags: ${{ inputs.registry }}:${{ inputs.version }}
         labels: ${{ steps.meta.outputs.labels }}

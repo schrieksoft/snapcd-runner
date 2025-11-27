@@ -10,7 +10,7 @@ env:
   REGISTRY: ghcr.io
   REPO_NAME: ${{ github.repository }}
   AZURE_STORAGE_ACCOUNT: githubartifacts8000
-  AZURE_STORAGE_CONTAINER: snapcd
+  AZURE_STORAGE_CONTAINER: snapcd-runner
   AZURE_STORAGE_KEY: ${{ secrets.AZURE_STORAGE_KEY }}
 
 jobs:

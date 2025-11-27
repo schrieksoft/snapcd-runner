@@ -92,7 +92,7 @@ jobs:
       env:
         GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       run: |
-        gh release create ${{ steps.gitversion.outputs.SemVer }} --notes "Release ${{ steps.gitversion.outputs.SemVer }}" -R https://github.com/schrieksoft/snapcd
+        gh release create ${{ steps.gitversion.outputs.SemVer }} --notes "Release ${{ steps.gitversion.outputs.SemVer }}" -R https://github.com/schrieksoft/snapcd-runner
 
   dockerize:
     needs: release

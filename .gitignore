@@ -1,0 +1,104 @@
+## Build artifacts
+bin/
+obj/
+out/
+artifacts/
+
+## .NET
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.cache/
+project.lock.json
+project.fragment.lock.json
+*.ide/
+
+## NuGet
+*.nupkg
+*.snupkg
+*.nuspec
+# Packages folder (if used; modern SDK projects normally do not need this)
+packages/
+# Always ignore global packages cache
+~/.nuget/
+
+## Logs
+*.log
+*.tlog
+
+## Visual Studio
+.vs/
+*.vc.db
+*.vscode/
+*.vscode/*
+
+## Rider / IntelliJ
+.idea/
+*.sln.iml
+
+## Resharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+## DotCover
+*.dotCover
+
+## Build results
+*.dll
+*.exe
+*.app
+*.pdb
+
+## Publish
+publish/
+*.pubxml
+*.pubxml.user
+
+## Temporary files
+*.tmp
+*.temp
+*.bak
+*.pid
+*.svclog
+
+## OS-specific
+# Windows
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+
+## IDE tooling
+# JetBrains Rider inspections cache
+.idea/
+*.ipr
+*.iws
+
+# VS Code extensions
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+## Test results
+TestResult*/
+TestResults/
+*.coverage
+*.coveragexml
+
+## Others
+*.swp
+*.swo
+
+appsettings.Development.json
+appsettings.Production.json

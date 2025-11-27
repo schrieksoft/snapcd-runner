@@ -1,0 +1,161 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+env:
+  REGISTRY: ghcr.io
+  REPO_NAME: ${{ github.repository }}
+  AZURE_STORAGE_ACCOUNT: githubartifacts8000
+  AZURE_STORAGE_CONTAINER: snapcd-runner
+  AZURE_STORAGE_KEY: ${{ secrets.AZURE_STORAGE_KEY }}
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    environment: ${{ github.ref_name }}
+
+    outputs:
+      version: ${{ steps.gitversion.outputs.SemVer }}
+      unique_key: ${{ steps.generate_key.outputs.guid }}
+
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Needed for GitVersion
+
+    - name: Generate Unique Key
+      id: generate_key
+      run: echo "guid=$(uuidgen)" >> $GITHUB_ENV && echo "guid=$(uuidgen)" >> $GITHUB_OUTPUT
+
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.0.100
+
+    - name: Prep
+      run: |
+        mkdir -p ./artifacts
+
+    - name: Install GitVersion
+      uses: gittools/actions/gitversion/setup@v3.1.11
+      with:
+        versionSpec: 5.x
+
+    - name: Determine Version
+      uses: gittools/actions/gitversion/execute@v3.1.11
+      id: gitversion
+      with:
+        useConfigFile: true
+        configFilePath: gitversion.yaml
+
+    - name: Display GitVersion outputs
+      run: |
+        echo "Version: ${{ steps.gitversion.outputs.SemVer }}"
+        echo "CommitsSinceVersionSource: ${{ steps.gitversion.outputs.CommitsSinceVersionSource }}"
+
+    - name: Build SnapCd.Runner
+      uses: ./.github/actions/publish-binary
+      with:
+        project_name: "SnapCd.Runner"
+        version: ${{ steps.gitversion.outputs.SemVer }}
+
+    - name: Upload Artifacts to Azure Storage
+      uses: azure/CLI@v1
+      with:
+        inlineScript: |
+          az storage blob upload-batch --account-name $AZURE_STORAGE_ACCOUNT \
+            --account-key $AZURE_STORAGE_KEY \
+            --destination $AZURE_STORAGE_CONTAINER/${{ steps.generate_key.outputs.guid }} \
+            --source ./artifacts --pattern "*"
+
+    - name: Tag
+      uses: actions/github-script@v5
+      if: github.ref == 'refs/heads/main'
+      with:
+        script: |
+          github.rest.git.createRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: 'refs/tags/${{ steps.gitversion.outputs.SemVer }}',
+            sha: context.sha
+          })
+
+    - name: Release
+      if: github.ref == 'refs/heads/main'
+      env:
+        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      run: |
+        gh release create ${{ steps.gitversion.outputs.SemVer }} --notes "Release ${{ steps.gitversion.outputs.SemVer }}" -R https://github.com/schrieksoft/snapcd
+
+  dockerize:
+    needs: release
+    environment: ${{ github.ref_name }}
+    runs-on: ubuntu-24.04
+
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+
+    steps:
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Download Artifacts from Azure Storage
+      uses: azure/CLI@v1
+      with:
+        inlineScript: |
+          mkdir -p ./temp
+          mkdir -p ./artifacts
+          az storage blob download-batch --account-name $AZURE_STORAGE_ACCOUNT \
+            --account-key $AZURE_STORAGE_KEY \
+            --destination ./temp \
+            --source $AZURE_STORAGE_CONTAINER \
+            --pattern ${{ needs.release.outputs.unique_key }}/*
+
+          # Move files up to ./artifacts/
+          mv ./temp/${{ needs.release.outputs.unique_key }}/* ./artifacts/
+          rm -r ./temp
+
+    - name: Log in to the Container registry
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Dockerize SnapCd.Runner
+      uses: ./.github/actions/dockerize
+      with:
+        version: ${{ needs.release.outputs.version }}
+        
+    - name: Dockerize SnapCd.Runner (Azure)
+      uses: ./.github/actions/dockerize
+      with:
+        version: azure-${{ needs.release.outputs.version }}
+        dockerfile: 'Dockerfile.azure'
+        
+  cleanup-artifacts:
+    needs: [dockerize, release]
+    environment: ${{ github.ref_name }}
+    runs-on: ubuntu-24.04
+    if: always() # Ensures this runs even if previous jobs fail
+
+    steps:
+      - name: Delete Artifacts from Azure Storage
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            az storage blob delete-batch --account-name $AZURE_STORAGE_ACCOUNT \
+              --account-key $AZURE_STORAGE_KEY \
+              --source $AZURE_STORAGE_CONTAINER \
+              --pattern ${{ needs.release.outputs.unique_key }}/*

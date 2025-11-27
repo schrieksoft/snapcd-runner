@@ -1,0 +1,29 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnapCd.Runner", "SnapCd.Runner\SnapCd.Runner.csproj", "{89FE773E-7746-4357-A6E3-98F1114B2ED5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnapCd.Runner.Tests", "SnapCd.Runner.Tests\SnapCd.Runner.Tests.csproj", "{08AA1E9A-1EB0-4673-8515-983465EEE523}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{89FE773E-7746-4357-A6E3-98F1114B2ED5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{89FE773E-7746-4357-A6E3-98F1114B2ED5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{89FE773E-7746-4357-A6E3-98F1114B2ED5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{89FE773E-7746-4357-A6E3-98F1114B2ED5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4C0BC617-B4B7-41AA-9594-D7E687933223}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4C0BC617-B4B7-41AA-9594-D7E687933223}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4C0BC617-B4B7-41AA-9594-D7E687933223}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4C0BC617-B4B7-41AA-9594-D7E687933223}.Release|Any CPU.Build.0 = Release|Any CPU
+		{08AA1E9A-1EB0-4673-8515-983465EEE523}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{08AA1E9A-1EB0-4673-8515-983465EEE523}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{08AA1E9A-1EB0-4673-8515-983465EEE523}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{08AA1E9A-1EB0-4673-8515-983465EEE523}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{4C0BC617-B4B7-41AA-9594-D7E687933223} = {F018410C-F932-4620-8ED5-D9EE26330719}
+	EndGlobalSection
+EndGlobal

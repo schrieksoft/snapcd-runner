@@ -136,18 +136,17 @@ jobs:
     - name: Dockerize SnapCd.Runner
       uses: ./.github/actions/dockerize
       with:
-        image_name: snapcd-runner
         version: ${{ needs.release.outputs.version }}
         
     - name: Dockerize SnapCd.Runner (Azure)
       uses: ./.github/actions/dockerize
       with:
-        image_name: snapcd-runner
         version: azure-${{ needs.release.outputs.version }}
         dockerfile: 'Dockerfile.azure'
         
   cleanup-artifacts:
     needs: [dockerize, release]
+    environment: ${{ github.ref_name }}
     runs-on: ubuntu-24.04
     if: always() # Ensures this runs even if previous jobs fail
 

@@ -65,12 +65,6 @@ public partial class Tasks
             var totalResourcesCountAfter = unchangedResourcesCount + modifyResourcesCount + recreateResourcesCount + createResourcesCount;
             var totalResourcesCountBefore = unchangedResourcesCount + modifyResourcesCount + recreateResourcesCount + destroyResourcesCount;
 
-            var unchangedResources = plan.GetResourceChange(Tfplan.Action.Noop);
-            var createResources = plan.GetResourceChange(Tfplan.Action.Create);
-            var modifyResources = plan.GetResourceChange(Tfplan.Action.Update);
-            var destroyResources = plan.GetResourceChange(Tfplan.Action.Delete);
-            var recreateResources = plan.GetResourceChange(Tfplan.Action.DeleteThenCreate);
-
             taskContext.LogInformation(
                 $"Plan summary:\n- Unchanged: {unchangedResourcesCount}\n- Create:    {createResourcesCount}\n- Modify:    {modifyResourcesCount}\n- Destroy:   {destroyResourcesCount}\n- Recreate:  {recreateResourcesCount}\n- Count Before Apply:  {totalResourcesCountBefore}\n- Count After Apply:   {totalResourcesCountAfter}");
 
@@ -81,12 +75,6 @@ public partial class Tasks
             var destroyOutputsCount = plan.GetOutputCount(Tfplan.Action.Delete);
             var recreateOutputsCount = plan.GetOutputCount(Tfplan.Action.DeleteThenCreate);
             var totalChangedOutputsCount = createOutputsCount + modifyOutputsCount + destroyOutputsCount + recreateOutputsCount;
-
-            var unchangedOutputs = plan.GetOutputChange(Tfplan.Action.Noop);
-            var createOutputs = plan.GetOutputChange(Tfplan.Action.Create);
-            var modifyOutputs = plan.GetOutputChange(Tfplan.Action.Update);
-            var destroyOutputs = plan.GetOutputChange(Tfplan.Action.Delete);
-            var recreateOutputs = plan.GetOutputChange(Tfplan.Action.DeleteThenCreate);
 
             taskContext.LogInformation(
                 $"Plan summary:\n- Unchanged Outputs: {unchangedOutputsCount}\n- Create Outputs:    {createOutputsCount}\n- Modify Outputs:    {modifyOutputsCount}\n- Destroyed Outputs: {destroyOutputsCount}\n- Recreate Outputs:  {recreateOutputsCount}");
@@ -102,23 +90,13 @@ public partial class Tasks
                 ModifyCount = modifyResourcesCount,
                 DestroyCount = destroyResourcesCount,
                 RecreateCount = recreateResourcesCount,
-                Unchanged = JsonSerializer.Serialize(unchangedResources),
-                Create = JsonSerializer.Serialize(createResources),
-                Modify = JsonSerializer.Serialize(modifyResources),
-                Destroy = JsonSerializer.Serialize(destroyResources),
-                Recreate = JsonSerializer.Serialize(recreateResources),
                 OutputsTotalCount = totalChangedOutputsCount + unchangedOutputsCount,
                 OutputsTotalChangedCount = totalChangedOutputsCount,
                 OutputsTotalUnchangedCount = unchangedOutputsCount,
                 OutputsCreateCount = createOutputsCount,
                 OutputsModifyCount = modifyOutputsCount,
                 OutputsDestroyCount = destroyOutputsCount,
-                OutputsRecreateCount = recreateOutputsCount,
-                OutputsUnchanged = JsonSerializer.Serialize(unchangedOutputs),
-                OutputsCreate = JsonSerializer.Serialize(createOutputs),
-                OutputsModify = JsonSerializer.Serialize(modifyOutputs),
-                OutputsDestroy = JsonSerializer.Serialize(destroyOutputs),
-                OutputsRecreate = JsonSerializer.Serialize(recreateOutputs)
+                OutputsRecreateCount = recreateOutputsCount
             };
 
             await InvokeWithRetryAsync(

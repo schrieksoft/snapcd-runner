@@ -83,6 +83,7 @@ public class AccessTokenCacheQuartzJob : IJob
         {
             var result = await _tokenService.GetAccessTokenAsync(
                 _serverSettings.Url,
+                _runnerSettings.OrganizationId,
                 _runnerSettings.Credentials.ClientId,
                 _runnerSettings.Credentials.ClientSecret);
 

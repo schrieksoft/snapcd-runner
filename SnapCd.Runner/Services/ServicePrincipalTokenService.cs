@@ -12,15 +12,16 @@ public class ServicePrincipalTokenService
         _httpClient = httpClient;
     }
 
-    public async Task<TokenResponse> GetAccessTokenAsync(string authServerUrl, string clientId, string clientSecret, CancellationToken cancellationToken = default)
+    public async Task<TokenResponse> GetAccessTokenAsync(string authServerUrl, Guid organizationId, string clientId, string clientSecret, CancellationToken cancellationToken = default)
     {
         var tokenUrl = $"{authServerUrl}/connect/token";
+        var prefixedClientId = $"{organizationId}:{clientId}";
 
         var content = new FormUrlEncodedContent(new[]
         {
             new KeyValuePair<string, string>("grant_type", "client_credentials"),
             new KeyValuePair<string, string>("scope", "snapcd_scope"),
-            new KeyValuePair<string, string>("client_id", clientId),
+            new KeyValuePair<string, string>("client_id", prefixedClientId),
             new KeyValuePair<string, string>("client_secret", clientSecret)
         });
 
@@ -30,7 +31,11 @@ public class ServicePrincipalTokenService
 
         using var response = await _httpClient.SendAsync(request, cancellationToken);
 
-        if (!response.IsSuccessStatusCode) throw new HttpRequestException($"Unexpected status code: {response.StatusCode}");
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new HttpRequestException($"Token request failed. Status: {response.StatusCode}, URL: {tokenUrl}, Response: {errorBody}");
+        }
 
         var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
         return JsonSerializer.Deserialize<TokenResponse>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })

@@ -22,13 +22,13 @@ public class VariableDiscoveryService
     /// <param name="directoryPath">Path to the directory containing Terraform files</param>
     /// <param name="throwOnError">If false, logs warnings and continues on parse errors</param>
     /// <returns>List of discovered variables as InputDto</returns>
-    public async Task<List<VariableReadDto>> DiscoverVariablesAsync(
+    public async Task<List<VariableCreateDto>> DiscoverVariablesAsync(
         string directoryPath,
         bool throwOnError = false)
     {
         if (!Directory.Exists(directoryPath)) throw new DirectoryNotFoundException($"Directory not found: {directoryPath}");
 
-        var allVariables = new List<VariableReadDto>();
+        var allVariables = new List<VariableCreateDto>();
 
         // Scan *.tf files
         var tfFiles = Directory.GetFiles(directoryPath, "*.tf", SearchOption.TopDirectoryOnly);
@@ -397,7 +397,7 @@ public class VariableDiscoveryService
         var inputsJson = JsonConvert.SerializeObject(discoveredInputs, Formatting.None);
 
         // Create the VariableSetDto
-        var variableSet = new VariableSetReadDto
+        var variableSet = new VariableSetCreateDto
         {
             ModuleId = moduleId,
             Checksum = CalculateChecksum(inputsJson),

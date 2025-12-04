@@ -14,6 +14,7 @@ public class ServicePrincipalTokenServiceTests
     private readonly ServicePrincipalTokenService _service;
 
     private const string TestAuthServerUrl = "https://example.com";
+    private static readonly Guid TestOrganizationId = Guid.Parse("00000000-0000-0000-0000-000000000001");
     private const string TestClientId = "test-client";
     private const string TestClientSecret = "test-secret";
 
@@ -53,7 +54,7 @@ public class ServicePrincipalTokenServiceTests
             .ReturnsAsync(httpResponse);
 
         // Act
-        var result = await _service.GetAccessTokenAsync(TestAuthServerUrl, TestClientId, TestClientSecret);
+        var result = await _service.GetAccessTokenAsync(TestAuthServerUrl, TestOrganizationId, TestClientId, TestClientSecret);
 
         // Assert
         Assert.NotNull(result);
@@ -94,7 +95,7 @@ public class ServicePrincipalTokenServiceTests
             });
 
         // Act
-        await _service.GetAccessTokenAsync(TestAuthServerUrl, TestClientId, TestClientSecret);
+        await _service.GetAccessTokenAsync(TestAuthServerUrl, TestOrganizationId, TestClientId, TestClientSecret);
 
         // Assert
         Assert.NotNull(capturedFormContent);
@@ -126,7 +127,7 @@ public class ServicePrincipalTokenServiceTests
             .ReturnsAsync(httpResponse);
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<HttpRequestException>(() => _service.GetAccessTokenAsync(TestAuthServerUrl, TestClientId, TestClientSecret));
+        var exception = await Assert.ThrowsAsync<HttpRequestException>(() => _service.GetAccessTokenAsync(TestAuthServerUrl, TestOrganizationId, TestClientId, TestClientSecret));
 
         Assert.Contains($"Unexpected status code: {statusCode}", exception.Message);
     }
@@ -149,7 +150,7 @@ public class ServicePrincipalTokenServiceTests
             .ReturnsAsync(httpResponse);
 
         // Act & Assert
-        await Assert.ThrowsAsync<JsonException>(() => _service.GetAccessTokenAsync(TestAuthServerUrl, TestClientId, TestClientSecret));
+        await Assert.ThrowsAsync<JsonException>(() => _service.GetAccessTokenAsync(TestAuthServerUrl, TestOrganizationId, TestClientId, TestClientSecret));
     }
 
     [Fact]
@@ -170,7 +171,7 @@ public class ServicePrincipalTokenServiceTests
             .ReturnsAsync(httpResponse);
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => _service.GetAccessTokenAsync(TestAuthServerUrl, TestClientId, TestClientSecret));
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => _service.GetAccessTokenAsync(TestAuthServerUrl, TestOrganizationId, TestClientId, TestClientSecret));
 
         Assert.Contains("Failed to deserialize token response", exception.Message);
     }
@@ -210,7 +211,7 @@ public class ServicePrincipalTokenServiceTests
             });
 
         // Act
-        await _service.GetAccessTokenAsync(customServerUrl, TestClientId, TestClientSecret);
+        await _service.GetAccessTokenAsync(customServerUrl, TestOrganizationId, TestClientId, TestClientSecret);
 
         // Assert
         Assert.Equal(expectedTokenUrl, capturedUrl);
@@ -232,7 +233,7 @@ public class ServicePrincipalTokenServiceTests
             .ThrowsAsync(new OperationCanceledException());
 
         // Act & Assert
-        await Assert.ThrowsAsync<TaskCanceledException>(() => _service.GetAccessTokenAsync(TestAuthServerUrl, TestClientId, TestClientSecret, cts.Token));
+        await Assert.ThrowsAsync<TaskCanceledException>(() => _service.GetAccessTokenAsync(TestAuthServerUrl, TestOrganizationId, TestClientId, TestClientSecret, cts.Token));
     }
 
     [Fact]
@@ -261,7 +262,7 @@ public class ServicePrincipalTokenServiceTests
             .ReturnsAsync(httpResponse);
 
         // Act
-        var result = await _service.GetAccessTokenAsync(TestAuthServerUrl, TestClientId, TestClientSecret);
+        var result = await _service.GetAccessTokenAsync(TestAuthServerUrl, TestOrganizationId, TestClientId, TestClientSecret);
 
         // Assert
         Assert.Equal("test-access-token", result.AccessToken);
@@ -277,11 +278,12 @@ public class ServicePrincipalTokenServiceTests
         var service = new ServicePrincipalTokenService(httpClient);
 
         const string authServerUrl = "https://localhost:20002";
+        var organizationId = Guid.Parse("00000000-0000-0000-0000-000000000001"); // Test org ID
         const string clientId = "Admin";
         const string clientSecret = "somesecret";
 
         // Act
-        var result = await service.GetAccessTokenAsync(authServerUrl, clientId, clientSecret);
+        var result = await service.GetAccessTokenAsync(authServerUrl, organizationId, clientId, clientSecret);
 
         // Assert
         Assert.NotNull(result);

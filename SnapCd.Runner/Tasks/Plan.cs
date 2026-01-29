@@ -96,7 +96,12 @@ public partial class Tasks
                 OutputsCreateCount = createOutputsCount,
                 OutputsModifyCount = modifyOutputsCount,
                 OutputsDestroyCount = destroyOutputsCount,
-                OutputsRecreateCount = recreateOutputsCount
+                OutputsRecreateCount = recreateOutputsCount,
+                OutputsUnchangedList = plan.GetOutputChange(Tfplan.Action.Noop).Select(o => o.Name).ToList(),
+                OutputsCreateList = plan.GetOutputChange(Tfplan.Action.Create).Select(o => o.Name).ToList(),
+                OutputsModifyList = plan.GetOutputChange(Tfplan.Action.Update).Select(o => o.Name).ToList(),
+                OutputsDestroyList = plan.GetOutputChange(Tfplan.Action.Delete).Select(o => o.Name).ToList(),
+                OutputsRecreateList = plan.GetOutputChange(Tfplan.Action.DeleteThenCreate).Select(o => o.Name).ToList()
             };
 
             await InvokeWithRetryAsync(

@@ -49,9 +49,17 @@ public partial class Tasks
                 request.Metadata
             );
 
+            // Discover which outputs are defined in extra files
+            var extraFileNames = request.ExtraFileNames != null
+                ? new HashSet<string>(request.ExtraFileNames)
+                : null;
+            var outputSources = await _discoveryService.DiscoverOutputSourcesAsync(
+                engine.GetInitDir(),
+                extraFileNames);
+
             var moduleOutputJson = await engine.Output(request.OutputBeforeHook, request.OutputAfterHook, killCts.Token, gracefulCts.Token);
 
-            var moduleOutputSet = await engine.ParseJsonToModuleOutputSet(moduleOutputJson);
+            var moduleOutputSet = await engine.ParseJsonToModuleOutputSet(moduleOutputJson, outputSources);
 
             await InvokeWithRetryAsync(
                 () => runnerHubClient.InvokeOutputCompleted(request.JobId, moduleOutputSet),

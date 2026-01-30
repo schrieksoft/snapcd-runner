@@ -586,7 +586,7 @@ echo "">>>>>>>> {afterHookMessage} <<<<<<<<<""
     }
 
 
-    public async Task<OutputSetCreateDto?> ParseJsonToModuleOutputSet(string json)
+    public async Task<OutputSetCreateDto?> ParseJsonToModuleOutputSet(string json, Dictionary<string, bool>? outputSources = null)
     {
         // Parse the JSON string into a JObject
         var jsonObject = JObject.Parse(json);
@@ -621,13 +621,19 @@ echo "">>>>>>>> {afterHookMessage} <<<<<<<<<""
                     value = valueJObject.ToString(Formatting.None); // Serialize as a compact string
                 else if (property.Value["value"] != null) value = property.Value["value"]?.ToString();
 
+                // Determine if output is from an extra file
+                var fromExtraFile = outputSources != null &&
+                                    outputSources.TryGetValue(property.Name, out var isExtra) &&
+                                    isExtra;
+
                 // Create a ModuleOutput object for each JSON property
                 var moduleOutput = new OutputReadDto
                 {
                     Name = property.Name,
                     Sensitive = property.Value["sensitive"]?.Value<bool>(),
                     Type = type ?? throw new InvalidOperationException("Output type is not defined"),
-                    Value = value ?? throw new InvalidOperationException("Output value is not defined")
+                    Value = value ?? throw new InvalidOperationException("Output value is not defined"),
+                    FromExtraFile = fromExtraFile
                 };
 
                 // Add the ModuleOutput object to the list in ModuleOutputSet

@@ -20,10 +20,12 @@ public class VariableDiscoveryService
     /// Discovers all Terraform variables in a directory by scanning .tf and .tf.json files.
     /// </summary>
     /// <param name="directoryPath">Path to the directory containing Terraform files</param>
+    /// <param name="extraFileNames">Set of filenames that are extra files (to set FromExtraFile flag)</param>
     /// <param name="throwOnError">If false, logs warnings and continues on parse errors</param>
     /// <returns>List of discovered variables as InputDto</returns>
     public async Task<List<VariableCreateDto>> DiscoverVariablesAsync(
         string directoryPath,
+        ISet<string>? extraFileNames = null,
         bool throwOnError = false)
     {
         if (!Directory.Exists(directoryPath)) throw new DirectoryNotFoundException($"Directory not found: {directoryPath}");
@@ -36,6 +38,8 @@ public class VariableDiscoveryService
             try
             {
                 var vars = await ParseFileAsync(file);
+                var isExtraFile = IsExtraFile(file, extraFileNames);
+                foreach (var v in vars) v.FromExtraFile = isExtraFile;
                 allVariables.AddRange(vars);
             }
             catch (VariableParseException ex)
@@ -52,6 +56,8 @@ public class VariableDiscoveryService
             try
             {
                 var vars = await ParseFileAsync(file);
+                var isExtraFile = IsExtraFile(file, extraFileNames);
+                foreach (var v in vars) v.FromExtraFile = isExtraFile;
                 allVariables.AddRange(vars);
             }
             catch (Exception ex)
@@ -61,6 +67,116 @@ public class VariableDiscoveryService
             }
 
         return allVariables;
+    }
+
+    private static bool IsExtraFile(string filePath, ISet<string>? extraFileNames)
+    {
+        if (extraFileNames == null || extraFileNames.Count == 0) return false;
+        var fileName = Path.GetFileName(filePath);
+        var isExtraFile = extraFileNames.Contains(fileName);
+        return isExtraFile;
+    }
+
+    /// <summary>
+    /// Discovers output definitions from .tf files and returns a mapping of output name to FromExtraFile flag.
+    /// </summary>
+    /// <param name="directoryPath">Path to the directory containing Terraform files</param>
+    /// <param name="extraFileNames">Set of filenames that are extra files</param>
+    /// <returns>Dictionary mapping output name to whether it's from an extra file</returns>
+    public async Task<Dictionary<string, bool>> DiscoverOutputSourcesAsync(
+        string directoryPath,
+        ISet<string>? extraFileNames = null)
+    {
+        var outputSources = new Dictionary<string, bool>();
+
+        if (!Directory.Exists(directoryPath)) return outputSources;
+
+        // Scan *.tf files for output blocks
+        var tfFiles = Directory.GetFiles(directoryPath, "*.tf", SearchOption.TopDirectoryOnly);
+        foreach (var file in tfFiles)
+        {
+            try
+            {
+                var content = await File.ReadAllTextAsync(file);
+                var isExtraFile = IsExtraFile(file, extraFileNames);
+                var outputNames = ParseOutputNames(content);
+                foreach (var name in outputNames)
+                {
+                    outputSources[name] = isExtraFile;
+                }
+            }
+            catch
+            {
+                // Silently continue on parse errors
+            }
+        }
+
+        // Scan *.tf.json files for output blocks
+        var tfJsonFiles = Directory.GetFiles(directoryPath, "*.tf.json", SearchOption.TopDirectoryOnly);
+        foreach (var file in tfJsonFiles)
+        {
+            try
+            {
+                var content = await File.ReadAllTextAsync(file);
+                var isExtraFile = IsExtraFile(file, extraFileNames);
+                var outputNames = ParseOutputNamesFromJson(content);
+                foreach (var name in outputNames)
+                {
+                    outputSources[name] = isExtraFile;
+                }
+            }
+            catch
+            {
+                // Silently continue on parse errors
+            }
+        }
+
+        return outputSources;
+    }
+
+    private static List<string> ParseOutputNames(string content)
+    {
+        var names = new List<string>();
+
+        // Remove comments
+        content = Regex.Replace(content, @"(#|//).*$", "", RegexOptions.Multiline);
+        content = Regex.Replace(content, @"/\*.*?\*/", "", RegexOptions.Singleline);
+
+        // Match output blocks: output "name" { or output name {
+        var pattern = @"output\s+(?:""([^""]+)""|(\w+))\s*\{";
+        var regex = new Regex(pattern, RegexOptions.Singleline);
+        var matches = regex.Matches(content);
+
+        foreach (Match match in matches)
+        {
+            var name = match.Groups[1].Success ? match.Groups[1].Value : match.Groups[2].Value;
+            names.Add(name);
+        }
+
+        return names;
+    }
+
+    private static List<string> ParseOutputNamesFromJson(string content)
+    {
+        var names = new List<string>();
+
+        try
+        {
+            var json = JObject.Parse(content);
+            if (json["output"] is JObject outputObj)
+            {
+                foreach (var prop in outputObj.Properties())
+                {
+                    names.Add(prop.Name);
+                }
+            }
+        }
+        catch
+        {
+            // Invalid JSON, return empty list
+        }
+
+        return names;
     }
 
     /// <summary>
@@ -175,17 +291,19 @@ public class VariableDiscoveryService
         // Remove multi-line comments (/* ... */)
         content = Regex.Replace(content, @"/\*.*?\*/", "", RegexOptions.Singleline);
 
-        // Regex pattern to match: variable "name" { ... }
+        // Regex pattern to match: variable "name" { ... } or variable name { ... }
+        // Variable names can be quoted or unquoted in HCL
         // Handles nested braces in the block content
-        var pattern = @"variable\s+""([^""]+)""\s*\{((?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*)\}";
+        var pattern = @"variable\s+(?:""([^""]+)""|(\w+))\s*\{((?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*)\}";
         var regex = new Regex(pattern, RegexOptions.Singleline);
 
         var matches = regex.Matches(content);
 
         foreach (Match match in matches)
         {
-            var variableName = match.Groups[1].Value;
-            var blockContent = match.Groups[2].Value;
+            // Group 1 = quoted name, Group 2 = unquoted name, Group 3 = block content
+            var variableName = match.Groups[1].Success ? match.Groups[1].Value : match.Groups[2].Value;
+            var blockContent = match.Groups[3].Value;
 
             try
             {
@@ -383,15 +501,18 @@ public class VariableDiscoveryService
     /// </summary>
     /// <param name="directoryPath">Path to the directory containing Terraform files</param>
     /// <param name="moduleId">The module ID for the VariableSet</param>
-    /// <param name="organizationId">The organization ID for the VariableSet</param>
+    /// <param name="extraFileNames">Set of filenames that are extra files (to set FromExtraFile flag)</param>
     /// <returns>VariableSetDto containing discovered variables, or null if no variables found</returns>
-    public async Task<VariableSetCreateDto?> CreateVariableSet(string directoryPath, Guid moduleId)
+    public async Task<VariableSetCreateDto?> CreateVariableSet(
+        string directoryPath,
+        Guid moduleId,
+        ISet<string>? extraFileNames = null)
     {
         // Discover all variables in the directory
-        var discoveredInputs = await DiscoverVariablesAsync(directoryPath, false);
+        var discoveredInputs = await DiscoverVariablesAsync(directoryPath, extraFileNames);
 
         // If no variables found, return null
-        if (discoveredInputs == null || discoveredInputs.Count == 0) return null;
+        if (discoveredInputs.Count == 0) return null;
 
         // Serialize the inputs to JSON for checksum calculation
         var inputsJson = JsonConvert.SerializeObject(discoveredInputs, Formatting.None);

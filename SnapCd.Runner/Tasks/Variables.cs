@@ -43,9 +43,14 @@ public partial class Tasks
                 request.Metadata
             );
 
+            var extraFileNames = request.ExtraFileNames != null
+                ? new HashSet<string>(request.ExtraFileNames)
+                : null;
+
             var variableSetDto = await _discoveryService.CreateVariableSet(
                 engine.GetInitDir(),
-                request.Metadata.ModuleId);
+                request.Metadata.ModuleId,
+                extraFileNames);
 
             await InvokeWithRetryAsync(
                 () => runnerHubClient.InvokeVariablesCompleted(request.JobId, variableSetDto),

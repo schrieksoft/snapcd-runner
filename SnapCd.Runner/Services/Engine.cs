@@ -140,7 +140,14 @@ public class Engine
         if (flags.AutoReconfigureEnabled) initFlags.Add("-reconfigure");
         if (flags.AutoMigrateEnabled) initFlags.Add("-migrate-state");
 
-        var baseScript = $"{_engine} init {string.Join(" ", initFlags)}";
+        var initCommand = $"{_engine} init {string.Join(" ", initFlags)}";
+        string baseScript;
+        if (flags.AutoMigrateEnabled)
+            baseScript = $"echo \"yes\" | {initCommand}";
+        else if (flags.AutoReconfigureEnabled)
+            baseScript = $"echo \"no\" | {initCommand}";
+        else
+            baseScript = initCommand;
 
         var backendConfigArgs = BuildBackendConfigArgs(backendConfig);
         if (!string.IsNullOrWhiteSpace(backendConfigArgs))

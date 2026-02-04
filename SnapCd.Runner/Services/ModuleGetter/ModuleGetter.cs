@@ -1,3 +1,4 @@
+using System.Text.Json;
 using SnapCd.Common;
 using SnapCd.Common.Dto;
 using SnapCd.Common.Dto.Misc;
@@ -151,23 +152,133 @@ public abstract class ModuleGetter
 
     protected virtual async Task AddExtraFiles(HashSet<string> workingFilePaths, List<ExtraFileDto>? extraFiles)
     {
-        if (extraFiles != null)
+        var manifestPath = Path.Combine(ModuleDirectoryService.GetSnapCdDir(), "extra-files.json");
+        var backupDir = Path.Combine(ModuleDirectoryService.GetSnapCdDir(), "original-files");
+        var previousManifest = await ReadExtraFilesManifest(manifestPath);
+        var currentExtraFileNames = extraFiles?.Select(f => f.FileName).ToHashSet() ?? new HashSet<string>();
+        var newManifest = new ExtraFilesManifest();
+
+        // Cleanup: delete created files and restore overwritten files that are no longer in the extra files list
+        foreach (var createdFileName in previousManifest.Created)
+        {
+            if (!currentExtraFileNames.Contains(createdFileName))
+            {
+                var path = Path.Combine(ModuleDirectoryService.GetModuleRootDir(), createdFileName);
+                if (File.Exists(path))
+                {
+                    Context.LogInformation($"Removing extra file: {createdFileName}");
+                    File.Delete(path);
+                }
+            }
+        }
+
+        foreach (var overwrittenFileName in previousManifest.Overwritten)
+        {
+            if (!currentExtraFileNames.Contains(overwrittenFileName))
+            {
+                var path = Path.Combine(ModuleDirectoryService.GetModuleRootDir(), overwrittenFileName);
+                await RestoreOriginalFile(backupDir, overwrittenFileName, path);
+            }
+        }
+
+        // Write current extra files
+        if (extraFiles != null && extraFiles.Count > 0)
         {
             Context.LogInformation($"Now adding extra files to folder \"{ModuleDirectoryService.GetModuleRootDir()}\"");
             foreach (var file in extraFiles)
             {
                 var path = Path.Combine(ModuleDirectoryService.GetModuleRootDir(), file.FileName);
-                if (File.Exists(path) && !workingFilePaths.Contains(path))
+
+                if (File.Exists(path) && workingFilePaths.Contains(path))
                 {
+                    // Working files (terraform state) - always write, don't track
+                    await File.WriteAllTextAsync(path, file.Contents);
+                }
+                else if (File.Exists(path))
+                {
+                    // Source file exists
                     if (file.Overwrite)
+                    {
+                        await BackupOriginalFile(backupDir, file.FileName, path);
                         await File.WriteAllTextAsync(path, file.Contents);
+                        newManifest.Overwritten.Add(file.FileName);
+                    }
+                    // else: Overwrite=false, skip and don't track
                 }
                 else
                 {
+                    // File doesn't exist - create it
                     await File.WriteAllTextAsync(path, file.Contents);
+                    newManifest.Created.Add(file.FileName);
                 }
             }
         }
+
+        // Save new manifest
+        await WriteExtraFilesManifest(manifestPath, newManifest);
+    }
+
+    private async Task BackupOriginalFile(string backupDir, string fileName, string sourcePath)
+    {
+        var backupPath = Path.Combine(backupDir, fileName);
+
+        // Only backup if not already backed up (from a previous run)
+        if (File.Exists(backupPath))
+            return;
+
+        CreateDirectoryIfNotExists(backupDir);
+        await File.WriteAllBytesAsync(backupPath, await File.ReadAllBytesAsync(sourcePath));
+        Context.LogInformation($"Backed up original file: {fileName}");
+    }
+
+    private async Task RestoreOriginalFile(string backupDir, string fileName, string targetPath)
+    {
+        var backupPath = Path.Combine(backupDir, fileName);
+
+        if (File.Exists(backupPath))
+        {
+            await File.WriteAllBytesAsync(targetPath, await File.ReadAllBytesAsync(backupPath));
+            File.Delete(backupPath);
+            Context.LogInformation($"Restored original file: {fileName}");
+        }
+        else
+        {
+            // Backup missing - delete the overwritten file
+            if (File.Exists(targetPath))
+            {
+                Context.LogWarning($"Backup not found for {fileName}, deleting overwritten file");
+                File.Delete(targetPath);
+            }
+        }
+    }
+
+    private async Task<ExtraFilesManifest> ReadExtraFilesManifest(string manifestPath)
+    {
+        if (!File.Exists(manifestPath))
+            return new ExtraFilesManifest();
+
+        try
+        {
+            var json = await File.ReadAllTextAsync(manifestPath);
+            return JsonSerializer.Deserialize<ExtraFilesManifest>(json) ?? new ExtraFilesManifest();
+        }
+        catch (Exception ex)
+        {
+            Context.LogWarning($"Failed to read extra files manifest: {ex.Message}");
+            return new ExtraFilesManifest();
+        }
+    }
+
+    private async Task WriteExtraFilesManifest(string manifestPath, ExtraFilesManifest manifest)
+    {
+        var json = JsonSerializer.Serialize(manifest);
+        await File.WriteAllTextAsync(manifestPath, json);
+    }
+
+    private class ExtraFilesManifest
+    {
+        public List<string> Created { get; set; } = new();
+        public List<string> Overwritten { get; set; } = new();
     }
 
     protected virtual async Task DeleteModuleRootDirIfExists()

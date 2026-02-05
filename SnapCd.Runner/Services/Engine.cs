@@ -460,7 +460,6 @@ public class Engine
         var error = errorBuilder.ToString();
         if (process.ExitCode != 0 || error != "")
         {
-            _context.LogError($"Failed with error: \n{error}");
             throw new Exception($"Process in {_initDir} failed. \n {error}");
         }
 

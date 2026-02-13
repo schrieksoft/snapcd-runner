@@ -57,7 +57,8 @@ public class SignalForwardingTests : IDisposable
             _taskContext,
             _mockLogger.Object,
             _moduleDirectoryService,
-            "terraform"
+            "terraform",
+            new List<string>()
         );
 
         Directory.CreateDirectory(_engine.GetInitDir());

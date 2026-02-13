@@ -21,6 +21,7 @@ builder.Services.Configure<ServerSettings>(builder.Configuration.GetSection("Ser
 builder.Services.Configure<WorkingDirectorySettings>(builder.Configuration.GetSection("WorkingDirectory"));
 builder.Services.Configure<RunnerSettings>(builder.Configuration.GetSection("Runner"));
 builder.Services.Configure<HooksPreapprovalSettings>(builder.Configuration.GetSection("HooksPreapproval"));
+builder.Services.Configure<EngineSettings>(builder.Configuration.GetSection("Engine"));
 
 builder.Services.AddMemoryCache();
 

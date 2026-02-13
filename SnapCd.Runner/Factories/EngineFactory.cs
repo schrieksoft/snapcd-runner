@@ -10,14 +10,17 @@ namespace SnapCd.Runner.Factories;
 public class EngineFactory
 {
     private readonly IOptions<WorkingDirectorySettings> _workingDirectorySettings;
+    private readonly IOptions<EngineSettings> _engineSettings;
     private readonly ILoggerFactory _loggerFactory;
 
     public EngineFactory(
         IOptions<WorkingDirectorySettings> workingDirectorySettings,
+        IOptions<EngineSettings> engineSettings,
         ILoggerFactory loggerFactory
     )
     {
         _workingDirectorySettings = workingDirectorySettings;
+        _engineSettings = engineSettings;
         _loggerFactory = loggerFactory;
     }
 
@@ -37,7 +40,8 @@ public class EngineFactory
             context,
             logger,
             moduleDirectoryService,
-            engine
+            engine,
+            _engineSettings.Value.AdditionalBinaryPaths
         );
     }
 }

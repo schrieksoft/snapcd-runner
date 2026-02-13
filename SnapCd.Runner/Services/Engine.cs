@@ -37,6 +37,7 @@ public class Engine
     private readonly string _snapCdDir;
     private readonly string _initDir;
     private readonly string _engine;
+    private readonly List<string> _additionalBinaryPaths;
 
     private const string PlanEntryName = "tfplan";
 
@@ -51,12 +52,14 @@ public class Engine
         TaskContext context,
         ILogger<Engine> logger,
         ModuleDirectoryService moduleDirectoryService,
-        string engine
+        string engine,
+        List<string> additionalBinaryPaths
     )
     {
         _logger = logger;
         _context = context;
         _engine = engine;
+        _additionalBinaryPaths = additionalBinaryPaths;
         _snapCdDir = moduleDirectoryService.GetSnapCdDir();
         _initDir = moduleDirectoryService.GetInitDir();
 
@@ -392,6 +395,13 @@ public class Engine
 
         foreach (var envVar in _envVars)
             startInfo.EnvironmentVariables[envVar.Key] = envVar.Value;
+
+        if (_additionalBinaryPaths.Count > 0)
+        {
+            var extra = string.Join(":", _additionalBinaryPaths);
+            var currentPath = startInfo.EnvironmentVariables["PATH"] ?? "";
+            startInfo.EnvironmentVariables["PATH"] = $"{extra}:{currentPath}";
+        }
 
         var process = new Process { StartInfo = startInfo };
         var outputBuilder = new StringBuilder();

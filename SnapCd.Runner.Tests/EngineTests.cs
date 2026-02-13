@@ -65,7 +65,8 @@ public class EngineTests : IDisposable
             _taskContext,
             _mockLogger.Object,
             _moduleDirectoryService,
-            TestEngine
+            TestEngine,
+            new List<string>()
         );
 
         // Create required directories

@@ -9,12 +9,19 @@ using SnapCd.Runner.Logging;
 using SnapCd.Runner.Services;
 using SnapCd.Runner.Services.ModuleSourceRefresher;
 using SnapCd.Runner.Settings;
+using SnapCd.Runner.Configuration;
 using SnapCd.Runner.Tasks;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-builder.Configuration.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true);
+builder.Configuration.Sources.Clear();
+builder.Configuration
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables()
+    .AddCommandLine(args)
+    .AddExternalConfiguration();
 
 // builder.Services.Configure<ProviderCacheSettings>(builder.Configuration.GetSection("ProviderCache"));
 builder.Services.Configure<ServerSettings>(builder.Configuration.GetSection("Server"));

@@ -450,7 +450,10 @@ public class Engine
         process.ErrorDataReceived += (_, e) =>
         {
             if (!string.IsNullOrEmpty(e.Data))
+            {
+                _context.LogInformation(e.Data);
                 errorBuilder.AppendLine(e.Data);
+            }
         };
 
         process.Start();
@@ -467,10 +470,9 @@ public class Engine
             await process.WaitForExitAsync(linkedCts.Token);
         }
 
-        var error = errorBuilder.ToString();
-        if (process.ExitCode != 0 || error != "")
+        if (process.ExitCode != 0 || errorBuilder.Length > 0)
         {
-            throw new Exception($"Process in {_initDir} failed. \n {error}");
+            throw new Exception($"Process in {_initDir} failed.");
         }
 
         return outputBuilder.ToString();

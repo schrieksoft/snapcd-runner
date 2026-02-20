@@ -48,7 +48,9 @@ public partial class Tasks
                 request.Engine,
                 request.Metadata,
                 request.BackendConfiguration.PulumiFlags,
-                request.BackendConfiguration.PulumiArrayFlags
+                request.BackendConfiguration.PulumiArrayFlags,
+                request.BackendConfiguration.TerraformFlags,
+                request.BackendConfiguration.TerraformArrayFlags
             );
 
             await engine.Init(

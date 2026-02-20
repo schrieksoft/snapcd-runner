@@ -103,6 +103,8 @@ public class TerraformEngine : BaseEngine, IEngine
         if (!string.IsNullOrWhiteSpace(backendConfigArgs))
             baseScript += $" {backendConfigArgs}";
 
+        baseScript = AppendFlagArgs(baseScript);
+
         var script = await CreateScriptAsync(
             baseScript,
             beforeHook,
@@ -181,8 +183,10 @@ public class TerraformEngine : BaseEngine, IEngine
         var tfvarsPath = GetTfVarsPath();
         await File.WriteAllTextAsync(tfvarsPath, tfVarsString);
 
+        var planCommand = AppendFlagArgs($"{_engine} plan -out={GetPlanApplyPath()} -input=false -var-file={tfvarsPath}");
+
         var script = await CreateScriptAsync(
-            $"{_engine} plan -out={GetPlanApplyPath()} -input=false -var-file={tfvarsPath}",
+            planCommand,
             planBeforeHook,
             planAfterHook,
             killCancellationToken);
@@ -204,8 +208,10 @@ public class TerraformEngine : BaseEngine, IEngine
         var tfvarsPath = GetTfVarsPath();
         await File.WriteAllTextAsync(tfvarsPath, tfVarsString);
 
+        var planDestroyCommand = AppendFlagArgs($"{_engine} plan -destroy -out={GetPlanDestroyPath()} -input=false -var-file={tfvarsPath}");
+
         var script = await CreateScriptAsync(
-            $"{_engine} plan -destroy -out={GetPlanDestroyPath()} -input=false -var-file={tfvarsPath}",
+            planDestroyCommand,
             beforeHook,
             afterHook,
             killCancellationToken);
@@ -221,7 +227,8 @@ public class TerraformEngine : BaseEngine, IEngine
         CancellationToken killCancellationToken = default,
         CancellationToken gracefulCancellationToken = default)
     {
-        var mainCommand = $"{_engine} apply {GetPlanDestroyPath()}\n{_engine} state list | grep -v '^data\\.' | wc -l > {SnapCdDir}/statistics.txt";
+        var applyCommand = AppendFlagArgs($"{_engine} apply {GetPlanDestroyPath()}");
+        var mainCommand = $"{applyCommand}\n{_engine} state list | grep -v '^data\\.' | wc -l > {SnapCdDir}/statistics.txt";
 
         var script = await CreateScriptAsync(
             mainCommand,
@@ -240,7 +247,8 @@ public class TerraformEngine : BaseEngine, IEngine
         CancellationToken killCancellationToken = default,
         CancellationToken gracefulCancellationToken = default)
     {
-        var mainCommand = $"{_engine} apply {GetPlanApplyPath()}\n{_engine} state list | grep -v '^data\\.' | wc -l > {SnapCdDir}/statistics.txt";
+        var applyCmd = AppendFlagArgs($"{_engine} apply {GetPlanApplyPath()}");
+        var mainCommand = $"{applyCmd}\n{_engine} state list | grep -v '^data\\.' | wc -l > {SnapCdDir}/statistics.txt";
 
         var script = await CreateScriptAsync(
             mainCommand,
@@ -259,8 +267,10 @@ public class TerraformEngine : BaseEngine, IEngine
         CancellationToken killCancellationToken = default,
         CancellationToken gracefulCancellationToken = default)
     {
+        var outputCommand = AppendFlagArgs($"{_engine} output -json");
+
         var script = await CreateScriptAsync(
-            $"{_engine} output -json > .snapcd/output.json",
+            $"{outputCommand} > .snapcd/output.json",
             beforeHook,
             afterHook,
             killCancellationToken);
@@ -273,6 +283,31 @@ public class TerraformEngine : BaseEngine, IEngine
         var output = reader.ReadToEnd();
 
         return output;
+    }
+
+    private string BuildFlagArgs()
+    {
+        var args = new List<string>();
+        foreach (var f in EngineFlags)
+        {
+            if (f.Value != null)
+                args.Add($"{f.Flag}={f.Value}");
+            else
+                args.Add(f.Flag);
+        }
+        foreach (var f in EngineArrayFlags)
+        {
+            args.Add($"{f.Flag}={f.Value}");
+        }
+        return string.Join(" ", args);
+    }
+
+    private string AppendFlagArgs(string command)
+    {
+        var flagArgs = BuildFlagArgs();
+        if (!string.IsNullOrEmpty(flagArgs))
+            command += $" {flagArgs}";
+        return command;
     }
 
     private string GetTfVarsPath() => $"{SnapCdDir}/inputs.tfvars";

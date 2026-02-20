@@ -29,7 +29,9 @@ public class EngineFactory
         string engine,
         JobMetadata metadata,
         List<PulumiFlagEntry>? pulumiFlags = null,
-        List<PulumiArrayFlagEntry>? pulumiArrayFlags = null)
+        List<PulumiArrayFlagEntry>? pulumiArrayFlags = null,
+        List<TerraformFlagEntry>? terraformFlags = null,
+        List<TerraformArrayFlagEntry>? terraformArrayFlags = null)
     {
         var moduleDirectoryService = new ModuleDirectoryService(
             metadata,
@@ -46,6 +48,10 @@ public class EngineFactory
             case "pulumi":
                 engineFlags = PulumiFlagConverter.Convert(pulumiFlags ?? []);
                 engineArrayFlags = PulumiFlagConverter.Convert(pulumiArrayFlags ?? []);
+                break;
+            case "terraform" or "tofu":
+                engineFlags = TerraformFlagConverter.Convert(terraformFlags ?? []);
+                engineArrayFlags = TerraformFlagConverter.Convert(terraformArrayFlags ?? []);
                 break;
             default:
                 engineFlags = [];

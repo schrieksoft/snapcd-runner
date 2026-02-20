@@ -50,7 +50,9 @@ public partial class Tasks
                 request.Engine,
                 request.Metadata,
                 request.PulumiFlags,
-                request.PulumiArrayFlags
+                request.PulumiArrayFlags,
+                request.TerraformFlags,
+                request.TerraformArrayFlags
             );
 
             await engine.Plan(request.ResolvedParameters, request.PlanBeforeHook, request.PlanAfterHook, killCts.Token, gracefulCts.Token);

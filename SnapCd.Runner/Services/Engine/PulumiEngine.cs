@@ -303,14 +303,14 @@ public class PulumiEngine : BaseEngine, IEngine
     private string? BuildStackSelectCommand(List<EngineFlagEntry> initFlags, string globalArgs)
     {
         var stackNameFlag = initFlags.FirstOrDefault(f => f.Flag == "--stack-name");
-        if (stackNameFlag == null || string.IsNullOrWhiteSpace(stackNameFlag.Value))
-            return null;
+        var stackName = stackNameFlag?.Value;
+        if (string.IsNullOrWhiteSpace(stackName))
+            stackName = "snapcd";
 
-        var cmd = $"pulumi stack select {stackNameFlag.Value}";
+        var cmd = $"pulumi stack select {stackName}";
 
         var stackExtraFlags = new List<string>();
-        if (initFlags.Any(f => f.Flag == "--create-stack"))
-            stackExtraFlags.Add("--create");
+        stackExtraFlags.Add("--create");
         var secretsProvider = initFlags.FirstOrDefault(f => f.Flag == "--secrets-provider");
         if (secretsProvider?.Value != null)
             stackExtraFlags.Add($"--secrets-provider {secretsProvider.Value}");

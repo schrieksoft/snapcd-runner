@@ -48,7 +48,9 @@ public partial class Tasks
                 request.Engine,
                 request.Metadata,
                 request.PulumiFlags,
-                request.PulumiArrayFlags
+                request.PulumiArrayFlags,
+                request.TerraformFlags,
+                request.TerraformArrayFlags
             );
 
             // Discover which outputs are defined in extra files

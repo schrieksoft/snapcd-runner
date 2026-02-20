@@ -10,11 +10,11 @@ namespace SnapCd.Runner.Tests;
 
 public class SignalForwardingTests : IDisposable
 {
-    private readonly Mock<ILogger<Engine>> _mockLogger;
+    private readonly Mock<ILogger<TerraformEngine>> _mockLogger;
     private readonly TaskContext _taskContext;
     private readonly string _testWorkingDirectory;
     private readonly ModuleDirectoryService _moduleDirectoryService;
-    private readonly Engine _engine;
+    private readonly TerraformEngine _engine;
 
     public SignalForwardingTests()
     {
@@ -24,7 +24,7 @@ public class SignalForwardingTests : IDisposable
             Guid.NewGuid().ToString());
         Directory.CreateDirectory(_testWorkingDirectory);
 
-        _mockLogger = new Mock<ILogger<Engine>>();
+        _mockLogger = new Mock<ILogger<TerraformEngine>>();
         var mockTaskLogger = new Mock<ILogger>();
 
         var metadata = new JobMetadata
@@ -53,7 +53,7 @@ public class SignalForwardingTests : IDisposable
             metadata,
             workingDirectorySettings);
 
-        _engine = new Engine(
+        _engine = new TerraformEngine(
             _taskContext,
             _mockLogger.Object,
             _moduleDirectoryService,

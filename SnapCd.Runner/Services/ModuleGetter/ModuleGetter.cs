@@ -15,6 +15,7 @@ public abstract class ModuleGetter
     protected readonly TaskContext Context;
     protected readonly ILogger<ModuleGetter> Logger;
     protected readonly ModuleDirectoryService ModuleDirectoryService;
+    protected readonly string Engine;
     protected string ResolvedSourceRevision = "";
 
 
@@ -25,13 +26,15 @@ public abstract class ModuleGetter
         string? subdirectory,
         ModuleDirectoryService moduleDirectoryService,
         TaskContext context,
-        ILogger<ModuleGetter> logger
+        ILogger<ModuleGetter> logger,
+        string engine
     )
     {
         SourceUrl = sourceUrl;
         SourceRevision = sourceRevision;
         Subdirectory = subdirectory ?? string.Empty;
         SourceRevisionType = sourceRevisionType;
+        Engine = engine;
 
         Context = context;
         Logger = logger;

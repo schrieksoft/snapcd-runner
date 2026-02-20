@@ -16,9 +16,10 @@ public class GitModuleGetter : ModuleGetter
         ModuleDirectoryService moduleDirectoryService,
         TaskContext context,
         ILogger<ModuleGetter> logger,
-        Git git
+        Git git,
+        string engine
     )
-        : base(sourceRevisionType, sourceUrl, sourceRevision, subdirectory, moduleDirectoryService, context, logger)
+        : base(sourceRevisionType, sourceUrl, sourceRevision, subdirectory, moduleDirectoryService, context, logger, engine)
     {
         _git = git;
     }
@@ -34,22 +35,30 @@ public class GitModuleGetter : ModuleGetter
 
         try
         {
-            var files = Directory.EnumerateFiles(ModuleDirectoryService.GetInitDir(), "*.*", SearchOption.TopDirectoryOnly)
-                .Where(file => file.EndsWith(".tf", StringComparison.OrdinalIgnoreCase) ||
-                               file.EndsWith(".tf.json", StringComparison.OrdinalIgnoreCase));
+            var initDir = ModuleDirectoryService.GetInitDir();
+            bool hasFiles = Engine == "pulumi"
+                ? Directory.EnumerateFiles(initDir, "*.*", SearchOption.TopDirectoryOnly)
+                    .Any(file => Path.GetFileName(file).Equals("Pulumi.yaml", StringComparison.OrdinalIgnoreCase) ||
+                                 Path.GetFileName(file).Equals("Pulumi.yml", StringComparison.OrdinalIgnoreCase))
+                : Directory.EnumerateFiles(initDir, "*.*", SearchOption.TopDirectoryOnly)
+                    .Any(file => file.EndsWith(".tf", StringComparison.OrdinalIgnoreCase) ||
+                                 file.EndsWith(".tf.json", StringComparison.OrdinalIgnoreCase));
 
-            if (!files.Any())
+            if (!hasFiles)
             {
-                var err = $"No Terraform files (.tf or .tf.json) found in the root directory {Subdirectory}.";
+                var expected = Engine == "pulumi"
+                    ? "Pulumi.yaml or Pulumi.yml"
+                    : ".tf or .tf.json";
+                var err = $"No {expected} files found in the root directory {Subdirectory}.";
                 Context.LogError(err);
                 throw new Exception(err);
             }
 
             return Task.FromResult(true);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (!ex.Message.StartsWith("No "))
         {
-            var err = $"Error while checking for Terraform files in {Subdirectory}: {ex.Message}";
+            var err = $"Error while checking for module files in {Subdirectory}: {ex.Message}";
             Context.LogError(err);
             throw new Exception(err);
         }

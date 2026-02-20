@@ -43,7 +43,8 @@ public partial class Tasks
                 request.SourceRevisionType,
                 request.SourceUrl,
                 request.SourceRevision,
-                request.Metadata
+                request.Metadata,
+                request.Engine
             );
 
             await moduleGetter.GetModule(

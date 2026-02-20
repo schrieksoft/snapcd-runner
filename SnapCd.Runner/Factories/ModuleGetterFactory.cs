@@ -35,7 +35,8 @@ public class ModuleGetterFactory
         SourceRevisionType sourceRevisionType,
         string sourceUrl,
         string sourceRevision,
-        JobMetadata metadata
+        JobMetadata metadata,
+        string engine = "tofu"
     )
     {
         var logger = _loggerFactory.CreateLogger<ModuleGetter>();
@@ -58,7 +59,8 @@ public class ModuleGetterFactory
                     moduleDirectoryService,
                     context,
                     logger,
-                    git
+                    git,
+                    engine
                 );
             }
             case SourceType.Registry:
@@ -86,7 +88,8 @@ public class ModuleGetterFactory
                     SourceRevisionType.Default, // even if we are able to parse a semver range earlier, at this point parsed.Revision must already be resolved.
                     parsed.Url,
                     parsed.Revision ?? throw new InvalidOperationException("Revision could not be parsed out"),
-                    metadata);
+                    metadata,
+                    engine);
             }
             default:
                 throw new NotImplementedException($"ModuleGetter for SourceType \"{sourceType}\" has not been implemented");

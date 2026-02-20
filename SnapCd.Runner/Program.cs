@@ -36,7 +36,7 @@ builder.Services.AddSingleton<AccessTokenCacheService>();
 builder.Services.AddSingleton<GitFactory>();
 builder.Services.AddSingleton<EngineFactory>();
 // ParamResolverFactory removed - parameter resolution now happens on server before dispatching
-builder.Services.AddSingleton<VariableDiscoveryService>();
+builder.Services.AddSingleton<VariableDiscoveryServiceFactory>();
 builder.Services.AddSingleton<ModuleGetterFactory>();
 builder.Services.AddSingleton<IModuleSourceRefresherFactory, ModuleSourceRefresherFactory>();
 

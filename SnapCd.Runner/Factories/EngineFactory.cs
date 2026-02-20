@@ -24,7 +24,7 @@ public class EngineFactory
         _loggerFactory = loggerFactory;
     }
 
-    public Engine Create(
+    public IEngine Create(
         TaskContext context,
         string engine,
         JobMetadata metadata)
@@ -34,14 +34,22 @@ public class EngineFactory
             _workingDirectorySettings
         );
 
-        var logger = _loggerFactory.CreateLogger<Engine>();
+        var additionalBinaryPaths = _engineSettings.Value.AdditionalBinaryPaths;
 
-        return new Engine(
-            context,
-            logger,
-            moduleDirectoryService,
-            engine,
-            _engineSettings.Value.AdditionalBinaryPaths
-        );
+        return engine switch
+        {
+            "terraform" or "tofu" => new TerraformEngine(
+                context,
+                _loggerFactory.CreateLogger<TerraformEngine>(),
+                moduleDirectoryService,
+                engine,
+                additionalBinaryPaths),
+            "pulumi" => new PulumiEngine(
+                context,
+                _loggerFactory.CreateLogger<PulumiEngine>(),
+                moduleDirectoryService,
+                additionalBinaryPaths),
+            _ => throw new NotSupportedException($"Engine '{engine}' is not supported")
+        };
     }
 }

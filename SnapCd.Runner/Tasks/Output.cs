@@ -53,7 +53,8 @@ public partial class Tasks
             var extraFileNames = request.ExtraFileNames != null
                 ? new HashSet<string>(request.ExtraFileNames)
                 : null;
-            var outputSources = await _discoveryService.DiscoverOutputSourcesAsync(
+            var discoveryService = _discoveryServiceFactory.Create(request.Engine);
+            var outputSources = await discoveryService.DiscoverOutputSourcesAsync(
                 engine.GetInitDir(),
                 extraFileNames);
 

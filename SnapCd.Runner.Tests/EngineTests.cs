@@ -13,11 +13,11 @@ namespace SnapCd.Runner.Tests;
 
 public class EngineTests : IDisposable
 {
-    private readonly Mock<ILogger<Engine>> _mockLogger;
+    private readonly Mock<ILogger<TerraformEngine>> _mockLogger;
     private readonly TaskContext _taskContext;
     private readonly string _testWorkingDirectory;
     private readonly ModuleDirectoryService _moduleDirectoryService;
-    private readonly Engine _engine;
+    private readonly TerraformEngine _engine;
     private const string TestEngine = "terraform";
 
     public EngineTests()
@@ -30,7 +30,7 @@ public class EngineTests : IDisposable
         Directory.CreateDirectory(_testWorkingDirectory);
 
         // Setup mocks
-        _mockLogger = new Mock<ILogger<Engine>>();
+        _mockLogger = new Mock<ILogger<TerraformEngine>>();
         var mockTaskLogger = new Mock<ILogger>();
 
         var metadata = new JobMetadata
@@ -61,7 +61,7 @@ public class EngineTests : IDisposable
             workingDirectorySettings);
 
         // Create the engine instance
-        _engine = new Engine(
+        _engine = new TerraformEngine(
             _taskContext,
             _mockLogger.Object,
             _moduleDirectoryService,

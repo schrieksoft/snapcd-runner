@@ -14,7 +14,7 @@ namespace SnapCd.Runner.Services;
 /// Service for discovering Terraform variable definitions from .tf and .tf.json files.
 /// Supports native JSON parsing for .tf.json and regex-based parsing for .tf files.
 /// </summary>
-public class VariableDiscoveryService
+public class TerraformVariableDiscoveryService : IVariableDiscoveryService
 {
     /// <summary>
     /// Discovers all Terraform variables in a directory by scanning .tf and .tf.json files.

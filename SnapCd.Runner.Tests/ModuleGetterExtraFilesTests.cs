@@ -339,7 +339,8 @@ public class ModuleGetterExtraFilesTests : IDisposable
                 null,
                 moduleDirectoryService,
                 context,
-                logger)
+                logger,
+                "tofu")
         {
         }
 

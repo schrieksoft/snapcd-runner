@@ -47,7 +47,8 @@ public partial class Tasks
                 ? new HashSet<string>(request.ExtraFileNames)
                 : null;
 
-            var variableSetDto = await _discoveryService.CreateVariableSet(
+            var discoveryService = _discoveryServiceFactory.Create(request.Engine);
+            var variableSetDto = await discoveryService.CreateVariableSet(
                 engine.GetInitDir(),
                 request.Metadata.ModuleId,
                 extraFileNames);

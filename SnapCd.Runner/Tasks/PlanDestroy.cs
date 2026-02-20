@@ -56,11 +56,11 @@ public partial class Tasks
             var planDestroy = engine.ParseDestroyPlan();
 
             // Extract resource counts and changes
-            var unchangedResourcesCount = planDestroy.GetResourceCount(Tfplan.Action.Noop);
-            var createResourcesCount = planDestroy.GetResourceCount(Tfplan.Action.Create);
-            var modifyResourcesCount = planDestroy.GetResourceCount(Tfplan.Action.Update);
-            var destroyResourcesCount = planDestroy.GetResourceCount(Tfplan.Action.Delete);
-            var recreateResourcesCount = planDestroy.GetResourceCount(Tfplan.Action.DeleteThenCreate);
+            var unchangedResourcesCount = planDestroy.GetResourceCount(PlanAction.Noop);
+            var createResourcesCount = planDestroy.GetResourceCount(PlanAction.Create);
+            var modifyResourcesCount = planDestroy.GetResourceCount(PlanAction.Update);
+            var destroyResourcesCount = planDestroy.GetResourceCount(PlanAction.Delete);
+            var recreateResourcesCount = planDestroy.GetResourceCount(PlanAction.Replace);
             var totalChangedResourcesCount = createResourcesCount + modifyResourcesCount + destroyResourcesCount + recreateResourcesCount;
             var totalResourcesCountAfter = unchangedResourcesCount + modifyResourcesCount + recreateResourcesCount + createResourcesCount;
             var totalResourcesCountBefore = unchangedResourcesCount + modifyResourcesCount + recreateResourcesCount + destroyResourcesCount;
@@ -69,11 +69,11 @@ public partial class Tasks
                 $"PlanDestroy summary:\n- Unchanged: {unchangedResourcesCount}\n- Create:    {createResourcesCount}\n- Modify:    {modifyResourcesCount}\n- Destroy:   {destroyResourcesCount}\n- Recreate:  {recreateResourcesCount}\n- Count Before Apply:  {totalResourcesCountBefore}\n- Count After Apply:   {totalResourcesCountAfter}");
 
             // Extract output counts and changes
-            var unchangedOutputsCount = planDestroy.GetOutputCount(Tfplan.Action.Noop);
-            var createOutputsCount = planDestroy.GetOutputCount(Tfplan.Action.Create);
-            var modifyOutputsCount = planDestroy.GetOutputCount(Tfplan.Action.Update);
-            var destroyOutputsCount = planDestroy.GetOutputCount(Tfplan.Action.Delete);
-            var recreateOutputsCount = planDestroy.GetOutputCount(Tfplan.Action.DeleteThenCreate);
+            var unchangedOutputsCount = planDestroy.GetOutputCount(PlanAction.Noop);
+            var createOutputsCount = planDestroy.GetOutputCount(PlanAction.Create);
+            var modifyOutputsCount = planDestroy.GetOutputCount(PlanAction.Update);
+            var destroyOutputsCount = planDestroy.GetOutputCount(PlanAction.Delete);
+            var recreateOutputsCount = planDestroy.GetOutputCount(PlanAction.Replace);
             var totalChangedOutputsCount = createOutputsCount + modifyOutputsCount + destroyOutputsCount + recreateOutputsCount;
 
             taskContext.LogInformation(
@@ -97,11 +97,11 @@ public partial class Tasks
                 OutputsModifyCount = modifyOutputsCount,
                 OutputsDestroyCount = destroyOutputsCount,
                 OutputsRecreateCount = recreateOutputsCount,
-                OutputsUnchangedList = planDestroy.GetOutputChange(Tfplan.Action.Noop).Select(o => o.Name).ToList(),
-                OutputsCreateList = planDestroy.GetOutputChange(Tfplan.Action.Create).Select(o => o.Name).ToList(),
-                OutputsModifyList = planDestroy.GetOutputChange(Tfplan.Action.Update).Select(o => o.Name).ToList(),
-                OutputsDestroyList = planDestroy.GetOutputChange(Tfplan.Action.Delete).Select(o => o.Name).ToList(),
-                OutputsRecreateList = planDestroy.GetOutputChange(Tfplan.Action.DeleteThenCreate).Select(o => o.Name).ToList()
+                OutputsUnchangedList = planDestroy.GetOutputChange(PlanAction.Noop).Select(o => o.Name).ToList(),
+                OutputsCreateList = planDestroy.GetOutputChange(PlanAction.Create).Select(o => o.Name).ToList(),
+                OutputsModifyList = planDestroy.GetOutputChange(PlanAction.Update).Select(o => o.Name).ToList(),
+                OutputsDestroyList = planDestroy.GetOutputChange(PlanAction.Delete).Select(o => o.Name).ToList(),
+                OutputsRecreateList = planDestroy.GetOutputChange(PlanAction.Replace).Select(o => o.Name).ToList()
             };
 
             await InvokeWithRetryAsync(

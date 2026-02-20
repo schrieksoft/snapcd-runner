@@ -16,7 +16,7 @@ public partial class Tasks
     private readonly RunnerSettings _settings;
     private readonly ModuleGetterFactory _moduleGetterFactory;
     private readonly EngineFactory _engineFactory;
-    private readonly VariableDiscoveryService _discoveryService;
+    private readonly VariableDiscoveryServiceFactory _discoveryServiceFactory;
     private readonly IModuleSourceRefresherFactory _moduleSourceRefresherFactory;
     private readonly HookPreapprovalService _hookPreapprovalService;
 
@@ -26,7 +26,7 @@ public partial class Tasks
         ILoggerFactory loggerFactory,
         ModuleGetterFactory moduleGetterFactory,
         EngineFactory engineFactory,
-        VariableDiscoveryService discoveryService,
+        VariableDiscoveryServiceFactory discoveryServiceFactory,
         IModuleSourceRefresherFactory moduleSourceRefresherFactory,
         HookPreapprovalService hookPreapprovalService)
     {
@@ -35,7 +35,7 @@ public partial class Tasks
         _settings = settings.Value;
         _moduleGetterFactory = moduleGetterFactory;
         _engineFactory = engineFactory;
-        _discoveryService = discoveryService;
+        _discoveryServiceFactory = discoveryServiceFactory;
         _moduleSourceRefresherFactory = moduleSourceRefresherFactory;
         _hookPreapprovalService = hookPreapprovalService;
     }

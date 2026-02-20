@@ -66,7 +66,9 @@ public class EngineTests : IDisposable
             _mockLogger.Object,
             _moduleDirectoryService,
             TestEngine,
-            new List<string>()
+            new List<string>(),
+            new List<EngineFlagEntry>(),
+            new List<EngineArrayFlagEntry>()
         );
 
         // Create required directories

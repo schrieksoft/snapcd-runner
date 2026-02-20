@@ -48,7 +48,9 @@ public partial class Tasks
             var engine = _engineFactory.Create(
                 taskContext,
                 request.Engine,
-                request.Metadata
+                request.Metadata,
+                request.PulumiFlags,
+                request.PulumiArrayFlags
             );
 
             await engine.Plan(request.ResolvedParameters, request.PlanBeforeHook, request.PlanAfterHook, killCts.Token, gracefulCts.Token);

@@ -46,7 +46,9 @@ public partial class Tasks
             var engine = _engineFactory.Create(
                 taskContext,
                 request.Engine,
-                request.Metadata
+                request.Metadata,
+                request.BackendConfiguration.PulumiFlags,
+                request.BackendConfiguration.PulumiArrayFlags
             );
 
             await engine.Init(

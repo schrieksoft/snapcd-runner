@@ -21,8 +21,10 @@ public class TerraformEngine : BaseEngine, IEngine
         ILogger logger,
         ModuleDirectoryService moduleDirectoryService,
         string engine,
-        List<string> additionalBinaryPaths
-    ) : base(context, logger, moduleDirectoryService, additionalBinaryPaths)
+        List<string> additionalBinaryPaths,
+        List<EngineFlagEntry> engineFlags,
+        List<EngineArrayFlagEntry> engineArrayFlags
+    ) : base(context, logger, moduleDirectoryService, additionalBinaryPaths, engineFlags, engineArrayFlags)
     {
         _engine = engine;
     }

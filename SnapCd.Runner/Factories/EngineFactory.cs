@@ -27,7 +27,9 @@ public class EngineFactory
     public IEngine Create(
         TaskContext context,
         string engine,
-        JobMetadata metadata)
+        JobMetadata metadata,
+        List<PulumiFlagEntry>? pulumiFlags = null,
+        List<PulumiArrayFlagEntry>? pulumiArrayFlags = null)
     {
         var moduleDirectoryService = new ModuleDirectoryService(
             metadata,
@@ -36,6 +38,21 @@ public class EngineFactory
 
         var additionalBinaryPaths = _engineSettings.Value.AdditionalBinaryPaths;
 
+        List<EngineFlagEntry> engineFlags;
+        List<EngineArrayFlagEntry> engineArrayFlags;
+
+        switch (engine)
+        {
+            case "pulumi":
+                engineFlags = PulumiFlagConverter.Convert(pulumiFlags ?? []);
+                engineArrayFlags = PulumiFlagConverter.Convert(pulumiArrayFlags ?? []);
+                break;
+            default:
+                engineFlags = [];
+                engineArrayFlags = [];
+                break;
+        }
+
         return engine switch
         {
             "terraform" or "tofu" => new TerraformEngine(
@@ -43,12 +60,16 @@ public class EngineFactory
                 _loggerFactory.CreateLogger<TerraformEngine>(),
                 moduleDirectoryService,
                 engine,
-                additionalBinaryPaths),
+                additionalBinaryPaths,
+                engineFlags,
+                engineArrayFlags),
             "pulumi" => new PulumiEngine(
                 context,
                 _loggerFactory.CreateLogger<PulumiEngine>(),
                 moduleDirectoryService,
-                additionalBinaryPaths),
+                additionalBinaryPaths,
+                engineFlags,
+                engineArrayFlags),
             _ => throw new NotSupportedException($"Engine '{engine}' is not supported")
         };
     }

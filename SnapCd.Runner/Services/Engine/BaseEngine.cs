@@ -8,6 +8,7 @@ using SnapCd.Common;
 using SnapCd.Common.Dto;
 using SnapCd.Common.Dto.Outputs;
 using SnapCd.Common.Dto.OutputSets;
+using SnapCd.Common.RunnerRequests.HelperClasses;
 using SnapCd.Runner.Utils;
 using File = System.IO.File;
 
@@ -29,19 +30,25 @@ public abstract class BaseEngine
     protected readonly string InitDir;
     protected Dictionary<string, string> EnvVars = new();
     private readonly List<string> _additionalBinaryPaths;
+    protected readonly List<EngineFlagEntry> EngineFlags;
+    protected readonly List<EngineArrayFlagEntry> EngineArrayFlags;
     protected virtual bool TreatStderrAsError => true;
 
     protected BaseEngine(
         TaskContext context,
         ILogger logger,
         ModuleDirectoryService moduleDirectoryService,
-        List<string> additionalBinaryPaths)
+        List<string> additionalBinaryPaths,
+        List<EngineFlagEntry> engineFlags,
+        List<EngineArrayFlagEntry> engineArrayFlags)
     {
         Logger = logger;
         Context = context;
         SnapCdDir = moduleDirectoryService.GetSnapCdDir();
         InitDir = moduleDirectoryService.GetInitDir();
         _additionalBinaryPaths = additionalBinaryPaths;
+        EngineFlags = engineFlags;
+        EngineArrayFlags = engineArrayFlags;
 
         LoadEnvVarsFromFile();
     }

@@ -4,6 +4,7 @@ using SnapCd.Common;
 using SnapCd.Common.Dto.OutputSets;
 using SnapCd.Common.Dto.Outputs;
 using SnapCd.Common.RunnerRequests.HelperClasses;
+using SnapCd.Runner.Factories;
 using SnapCd.Runner.Services.Plan;
 using File = System.IO.File;
 
@@ -22,8 +23,10 @@ public class PulumiEngine : BaseEngine, IEngine
         TaskContext context,
         ILogger logger,
         ModuleDirectoryService moduleDirectoryService,
-        List<string> additionalBinaryPaths
-    ) : base(context, logger, moduleDirectoryService, additionalBinaryPaths)
+        List<string> additionalBinaryPaths,
+        List<EngineFlagEntry> engineFlags,
+        List<EngineArrayFlagEntry> engineArrayFlags
+    ) : base(context, logger, moduleDirectoryService, additionalBinaryPaths, engineFlags, engineArrayFlags)
     {
     }
 
@@ -56,25 +59,20 @@ public class PulumiEngine : BaseEngine, IEngine
         EnvVars = resolvedEnvVars;
         SaveEnvVarsToFile();
 
+        var initFlags = PulumiFlagConverter.Convert(backendConfig.PulumiFlags);
+        var globalArgs = GetGlobalFlagArgs();
+
         var commands = new List<string>();
 
-        switch (backendConfig.PulumiLoginType)
-        {
-            case PulumiLoginType.PulumiCloud:
-                commands.Add("pulumi login");
-                break;
-            case PulumiLoginType.Local:
-                commands.Add("pulumi login --local");
-                break;
-            case PulumiLoginType.Custom:
-                commands.Add($"pulumi login {backendConfig.PulumiCustomLoginUrl}");
-                break;
-            case PulumiLoginType.None:
-                break;
-        }
+        // Build login command from init flags
+        var loginCommand = BuildLoginCommand(initFlags, globalArgs);
+        if (loginCommand != null)
+            commands.Add(loginCommand);
 
-        if (!string.IsNullOrWhiteSpace(backendConfig.PulumiStackName))
-            commands.Add($"pulumi stack select {backendConfig.PulumiStackName} --create --non-interactive");
+        // Build stack select command from init flags
+        var stackSelectCommand = BuildStackSelectCommand(initFlags, globalArgs);
+        if (stackSelectCommand != null)
+            commands.Add(stackSelectCommand);
 
         var baseScript = string.Join("\n", commands);
 
@@ -118,7 +116,8 @@ public class PulumiEngine : BaseEngine, IEngine
         await WriteConfigValues(parameters, killCancellationToken, gracefulCancellationToken);
 
         var planPath = GetPlanPath();
-        var baseScript = $"pulumi preview --save-plan {planPath} --non-interactive";
+        var phaseArgs = GetFlagArgs();
+        var baseScript = $"pulumi preview --save-plan {planPath} --non-interactive{phaseArgs}";
 
         var script = await CreateScriptAsync(
             baseScript,
@@ -141,7 +140,8 @@ public class PulumiEngine : BaseEngine, IEngine
         await WriteConfigValues(parameters, killCancellationToken, gracefulCancellationToken);
 
         var destroyPreviewPath = GetDestroyPreviewPath();
-        var baseScript = $"pulumi destroy --preview-only --json --non-interactive > {destroyPreviewPath}";
+        var phaseArgs = GetFlagArgs();
+        var baseScript = $"pulumi destroy --preview-only --json --non-interactive{phaseArgs} > {destroyPreviewPath}";
 
         var script = await CreateScriptAsync(
             baseScript,
@@ -165,7 +165,8 @@ public class PulumiEngine : BaseEngine, IEngine
         CancellationToken gracefulCancellationToken = default)
     {
         var exportPath = $"{SnapCdDir}/{ExportFileName}";
-        var mainCommand = $"pulumi up --yes --plan {GetPlanPath()} --non-interactive\npulumi stack export > {exportPath}";
+        var phaseArgs = GetFlagArgs();
+        var mainCommand = $"pulumi up --yes --plan {GetPlanPath()} --non-interactive{phaseArgs}\npulumi stack export > {exportPath}";
 
         var script = await CreateScriptAsync(
             mainCommand,
@@ -189,7 +190,8 @@ public class PulumiEngine : BaseEngine, IEngine
         CancellationToken gracefulCancellationToken = default)
     {
         var exportPath = $"{SnapCdDir}/{ExportFileName}";
-        var mainCommand = $"pulumi destroy --yes --non-interactive\npulumi stack export > {exportPath}";
+        var phaseArgs = GetFlagArgs();
+        var mainCommand = $"pulumi destroy --yes --non-interactive{phaseArgs}\npulumi stack export > {exportPath}";
 
         var script = await CreateScriptAsync(
             mainCommand,
@@ -213,8 +215,9 @@ public class PulumiEngine : BaseEngine, IEngine
         CancellationToken gracefulCancellationToken = default)
     {
         var outputPath = $"{SnapCdDir}/{OutputFileName}";
+        var phaseArgs = GetFlagArgs();
         var script = await CreateScriptAsync(
-            $"pulumi stack output --json > {outputPath}",
+            $"pulumi stack output --json{phaseArgs} > {outputPath}",
             beforeHook,
             afterHook,
             killCancellationToken);
@@ -254,6 +257,116 @@ public class PulumiEngine : BaseEngine, IEngine
 
         return CountResourcesFromExport(exportPath);
     }
+
+    #region Flag resolution
+
+    private string? BuildLoginCommand(List<EngineFlagEntry> initFlags, string globalArgs)
+    {
+        var hasLoginCloud = initFlags.Any(f => f.Flag == "--login-cloud");
+        var hasLoginLocal = initFlags.Any(f => f.Flag == "--login-local");
+        var cloudUrlFlag = initFlags.FirstOrDefault(f => f.Flag == "--cloud-url");
+
+        string? baseLoginCmd;
+        if (hasLoginCloud)
+            baseLoginCmd = "pulumi login";
+        else if (hasLoginLocal)
+            baseLoginCmd = "pulumi login --local";
+        else if (cloudUrlFlag != null && !string.IsNullOrWhiteSpace(cloudUrlFlag.Value))
+            baseLoginCmd = $"pulumi login {cloudUrlFlag.Value}";
+        else
+            return null;
+
+        // Append additional login-related init flags
+        var loginExtraFlags = new List<string>();
+        foreach (var f in initFlags)
+        {
+            switch (f.Flag)
+            {
+                case "--default-org":
+                    loginExtraFlags.Add(f.Value != null ? $"--default-org {f.Value}" : "--default-org");
+                    break;
+                case "--insecure":
+                    loginExtraFlags.Add("--insecure");
+                    break;
+            }
+        }
+
+        var extra = string.Join(" ", loginExtraFlags);
+        if (!string.IsNullOrEmpty(extra))
+            baseLoginCmd += $" {extra}";
+        if (!string.IsNullOrEmpty(globalArgs))
+            baseLoginCmd += globalArgs;
+
+        return baseLoginCmd;
+    }
+
+    private string? BuildStackSelectCommand(List<EngineFlagEntry> initFlags, string globalArgs)
+    {
+        var stackNameFlag = initFlags.FirstOrDefault(f => f.Flag == "--stack-name");
+        if (stackNameFlag == null || string.IsNullOrWhiteSpace(stackNameFlag.Value))
+            return null;
+
+        var cmd = $"pulumi stack select {stackNameFlag.Value}";
+
+        var stackExtraFlags = new List<string>();
+        if (initFlags.Any(f => f.Flag == "--create-stack"))
+            stackExtraFlags.Add("--create");
+        var secretsProvider = initFlags.FirstOrDefault(f => f.Flag == "--secrets-provider");
+        if (secretsProvider?.Value != null)
+            stackExtraFlags.Add($"--secrets-provider {secretsProvider.Value}");
+
+        stackExtraFlags.Add("--non-interactive");
+
+        cmd += $" {string.Join(" ", stackExtraFlags)}";
+        if (!string.IsNullOrEmpty(globalArgs))
+            cmd += globalArgs;
+
+        return cmd;
+    }
+
+    private string GetFlagArgs()
+    {
+        var args = new List<string>();
+
+        foreach (var f in EngineFlags)
+        {
+            if (f.Value != null)
+                args.Add($"{f.Flag} {f.Value}");
+            else
+                args.Add(f.Flag);
+        }
+
+        foreach (var f in EngineArrayFlags)
+            args.Add($"{f.Flag} {f.Value}");
+
+        return args.Count > 0 ? " " + string.Join(" ", args) : "";
+    }
+
+    private string GetGlobalFlagArgs()
+    {
+        // During Init, the engine's own flags are the init-phase flags.
+        // Global flags are also included in the init flags list by the server.
+        // Filter to only known global flags.
+        var globalFlagNames = new HashSet<string> { "--color", "--verbose", "--emoji" };
+        var args = new List<string>();
+
+        foreach (var f in EngineFlags.Where(f => globalFlagNames.Contains(f.Flag)))
+        {
+            if (f.Value != null)
+                args.Add($"{f.Flag} {f.Value}");
+            else
+                args.Add(f.Flag);
+        }
+
+        foreach (var f in EngineArrayFlags.Where(f => globalFlagNames.Contains(f.Flag)))
+            args.Add($"{f.Flag} {f.Value}");
+
+        return args.Count > 0 ? " " + string.Join(" ", args) : "";
+    }
+
+    #endregion
+
+    #region Helpers
 
     private async Task WriteStatisticsFromExport(string exportPath)
     {
@@ -324,4 +437,6 @@ public class PulumiEngine : BaseEngine, IEngine
 
     private string GetPlanPath() => $"{SnapCdDir}/{PlanFileName}";
     private string GetDestroyPreviewPath() => $"{SnapCdDir}/{DestroyPreviewFileName}";
+
+    #endregion
 }

@@ -24,24 +24,59 @@ public class EngineFactory
         _loggerFactory = loggerFactory;
     }
 
-    public Engine Create(
+    public IEngine Create(
         TaskContext context,
         string engine,
-        JobMetadata metadata)
+        JobMetadata metadata,
+        List<PulumiFlagEntry>? pulumiFlags = null,
+        List<PulumiArrayFlagEntry>? pulumiArrayFlags = null,
+        List<TerraformFlagEntry>? terraformFlags = null,
+        List<TerraformArrayFlagEntry>? terraformArrayFlags = null)
     {
         var moduleDirectoryService = new ModuleDirectoryService(
             metadata,
             _workingDirectorySettings
         );
 
-        var logger = _loggerFactory.CreateLogger<Engine>();
+        var additionalBinaryPaths = _engineSettings.Value.AdditionalBinaryPaths;
 
-        return new Engine(
-            context,
-            logger,
-            moduleDirectoryService,
-            engine,
-            _engineSettings.Value.AdditionalBinaryPaths
-        );
+        List<EngineFlagEntry> engineFlags;
+        List<EngineArrayFlagEntry> engineArrayFlags;
+
+        switch (engine)
+        {
+            case "pulumi":
+                engineFlags = PulumiFlagConverter.Convert(pulumiFlags ?? []);
+                engineArrayFlags = PulumiFlagConverter.Convert(pulumiArrayFlags ?? []);
+                break;
+            case "terraform" or "tofu":
+                engineFlags = TerraformFlagConverter.Convert(terraformFlags ?? []);
+                engineArrayFlags = TerraformFlagConverter.Convert(terraformArrayFlags ?? []);
+                break;
+            default:
+                engineFlags = [];
+                engineArrayFlags = [];
+                break;
+        }
+
+        return engine switch
+        {
+            "terraform" or "tofu" => new TerraformEngine(
+                context,
+                _loggerFactory.CreateLogger<TerraformEngine>(),
+                moduleDirectoryService,
+                engine,
+                additionalBinaryPaths,
+                engineFlags,
+                engineArrayFlags),
+            "pulumi" => new PulumiEngine(
+                context,
+                _loggerFactory.CreateLogger<PulumiEngine>(),
+                moduleDirectoryService,
+                additionalBinaryPaths,
+                engineFlags,
+                engineArrayFlags),
+            _ => throw new NotSupportedException($"Engine '{engine}' is not supported")
+        };
     }
 }

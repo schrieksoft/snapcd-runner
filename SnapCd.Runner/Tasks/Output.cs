@@ -46,14 +46,19 @@ public partial class Tasks
             var engine = _engineFactory.Create(
                 taskContext,
                 request.Engine,
-                request.Metadata
+                request.Metadata,
+                request.PulumiFlags,
+                request.PulumiArrayFlags,
+                request.TerraformFlags,
+                request.TerraformArrayFlags
             );
 
             // Discover which outputs are defined in extra files
             var extraFileNames = request.ExtraFileNames != null
                 ? new HashSet<string>(request.ExtraFileNames)
                 : null;
-            var outputSources = await _discoveryService.DiscoverOutputSourcesAsync(
+            var discoveryService = _discoveryServiceFactory.Create(request.Engine);
+            var outputSources = await discoveryService.DiscoverOutputSourcesAsync(
                 engine.GetInitDir(),
                 extraFileNames);
 

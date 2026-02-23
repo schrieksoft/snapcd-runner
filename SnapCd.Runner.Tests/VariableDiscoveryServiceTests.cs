@@ -3,18 +3,18 @@ using SnapCd.Runner.Services;
 namespace SnapCd.Runner.Tests;
 
 /// <summary>
-/// Tests for the VariableDiscoveryService class.
+/// Tests for the TerraformVariableDiscoveryService class.
 /// Verifies discovery and parsing of Terraform variables from .tf and .tf.json files.
 /// Tests only cover properties actually stored: Name, Type, Description, Sensitive, Nullable.
 /// </summary>
-public class VariableDiscoveryServiceTests
+public class TerraformVariableDiscoveryServiceTests
 {
-    private readonly VariableDiscoveryService _service;
+    private readonly TerraformVariableDiscoveryService _service;
     private readonly string _testDataBasePath;
 
-    public VariableDiscoveryServiceTests()
+    public TerraformVariableDiscoveryServiceTests()
     {
-        _service = new VariableDiscoveryService();
+        _service = new TerraformVariableDiscoveryService();
         _testDataBasePath = Path.Combine(AppContext.BaseDirectory, "TestData", "Terraform");
     }
 

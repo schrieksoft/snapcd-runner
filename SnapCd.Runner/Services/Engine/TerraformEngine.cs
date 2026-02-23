@@ -82,27 +82,38 @@ public class TerraformEngine : BaseEngine, IEngine
         EnvVars = resolvedEnvVars;
         SaveEnvVarsToFile();
 
+        // Determine effective flags by checking BOTH deprecated booleans and new flag entities
+        var upgradeRequested = flags.AutoUpgradeEnabled
+            || EngineFlags.Any(f => f.Flag == "-upgrade");
+        var reconfigureRequested = flags.AutoReconfigureEnabled
+            || EngineFlags.Any(f => f.Flag == "-reconfigure");
+        var migrateRequested = flags.AutoMigrateEnabled
+            || EngineFlags.Any(f => f.Flag == "-migrate-state");
+
+        // Remove init-managed flags from new flag lists to prevent duplication via AppendFlagArgs
+        EngineFlags.RemoveAll(f => f.Flag is "-upgrade" or "-reconfigure" or "-migrate-state");
+        var backendConfigEntries = EngineArrayFlags.Where(f => f.Flag == "-backend-config").ToList();
+        EngineArrayFlags.RemoveAll(f => f.Flag == "-backend-config");
+
         var initFlags = new List<string>();
-
-        if (flags.AutoUpgradeEnabled)
-            initFlags.Add("-upgrade");
-
-        if (flags.AutoReconfigureEnabled) initFlags.Add("-reconfigure");
-        if (flags.AutoMigrateEnabled) initFlags.Add("-migrate-state");
+        if (upgradeRequested) initFlags.Add("-upgrade");
+        if (reconfigureRequested) initFlags.Add("-reconfigure");
+        if (migrateRequested) initFlags.Add("-migrate-state");
 
         var initCommand = $"{_engine} init {string.Join(" ", initFlags)}";
         string baseScript;
-        if (flags.AutoMigrateEnabled)
+        if (migrateRequested)
             baseScript = $"echo \"yes\" | {initCommand}";
-        else if (flags.AutoReconfigureEnabled)
+        else if (reconfigureRequested)
             baseScript = $"echo \"no\" | {initCommand}";
         else
             baseScript = initCommand;
 
-        var backendConfigArgs = BuildBackendConfigArgs(backendConfig);
+        var backendConfigArgs = BuildMergedBackendConfigArgs(backendConfig, backendConfigEntries);
         if (!string.IsNullOrWhiteSpace(backendConfigArgs))
             baseScript += $" {backendConfigArgs}";
 
+        // Append remaining (non-init-specific) flags
         baseScript = AppendFlagArgs(baseScript);
 
         var script = await CreateScriptAsync(
@@ -116,18 +127,36 @@ public class TerraformEngine : BaseEngine, IEngine
         return await RunProcess(script, killCancellationToken, gracefulCancellationToken);
     }
 
-    private string BuildBackendConfigArgs(EngineBackendConfiguration backend)
+    private string BuildMergedBackendConfigArgs(
+        EngineBackendConfiguration backend,
+        List<EngineArrayFlagEntry> backendConfigEntries)
     {
         var backendConfigs = new Dictionary<string, string>();
 
+        // Old source: namespace configs (lowest priority)
         if (!backend.IgnoreNamespaceBackendConfigs)
             foreach (var config in backend.NamespaceBackendConfigs)
                 backendConfigs[config.Name] = config.Value;
 
-        foreach (var config in backend.ModuleBackendConfigs) backendConfigs[config.Name] = config.Value;
+        // Old source: module configs (override namespace)
+        foreach (var config in backend.ModuleBackendConfigs)
+            backendConfigs[config.Name] = config.Value;
+
+        // New source: TerraformArrayFlag.BackendConfig entries (highest priority)
+        foreach (var entry in backendConfigEntries)
+        {
+            var eqIndex = entry.Value.IndexOf('=');
+            if (eqIndex > 0)
+            {
+                var key = entry.Value[..eqIndex];
+                var value = entry.Value[(eqIndex + 1)..];
+                backendConfigs[key] = value;
+            }
+        }
 
         var args = new List<string>();
-        foreach (var kvp in backendConfigs) args.Add($"-backend-config=\"{kvp.Key}={kvp.Value}\"");
+        foreach (var kvp in backendConfigs)
+            args.Add($"-backend-config=\"{kvp.Key}={kvp.Value}\"");
 
         return string.Join(" ", args);
     }

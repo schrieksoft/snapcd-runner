@@ -11,7 +11,7 @@
     "snapcd.io": {
       "commandName": "Project",
       "launchBrowser": false,
-      "applicationUrl": "https://localhost:20003",
+      "applicationUrl": "https://localhost:20005",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Production"
       }

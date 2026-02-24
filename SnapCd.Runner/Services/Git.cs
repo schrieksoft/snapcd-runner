@@ -35,6 +35,9 @@ public class Git
             // Files starting with .terraform*
             files.UnionWith(Directory.EnumerateFiles(repoPath, ".terraform*", SearchOption.AllDirectories));
 
+            // State files (local backend)
+            files.UnionWith(Directory.EnumerateFiles(repoPath, "*.tfstate*", SearchOption.AllDirectories));
+
             // Files in .terraform directories
             foreach (var dir in Directory.EnumerateDirectories(repoPath, ".terraform", SearchOption.AllDirectories)) files.UnionWith(Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories));
 

@@ -166,7 +166,7 @@ public abstract class ModuleGetter
         {
             if (!currentExtraFileNames.Contains(createdFileName))
             {
-                var path = Path.Combine(ModuleDirectoryService.GetModuleRootDir(), createdFileName);
+                var path = Path.Combine(ModuleDirectoryService.GetInitDir(), createdFileName);
                 if (File.Exists(path))
                 {
                     Context.LogInformation($"Removing extra file: {createdFileName}");
@@ -179,7 +179,7 @@ public abstract class ModuleGetter
         {
             if (!currentExtraFileNames.Contains(overwrittenFileName))
             {
-                var path = Path.Combine(ModuleDirectoryService.GetModuleRootDir(), overwrittenFileName);
+                var path = Path.Combine(ModuleDirectoryService.GetInitDir(), overwrittenFileName);
                 await RestoreOriginalFile(backupDir, overwrittenFileName, path);
             }
         }
@@ -187,10 +187,10 @@ public abstract class ModuleGetter
         // Write current extra files
         if (extraFiles != null && extraFiles.Count > 0)
         {
-            Context.LogInformation($"Now adding extra files to folder \"{ModuleDirectoryService.GetModuleRootDir()}\"");
+            Context.LogInformation($"Now adding extra files to folder \"{ModuleDirectoryService.GetInitDir()}\"");
             foreach (var file in extraFiles)
             {
-                var path = Path.Combine(ModuleDirectoryService.GetModuleRootDir(), file.FileName);
+                var path = Path.Combine(ModuleDirectoryService.GetInitDir(), file.FileName);
 
                 if (File.Exists(path) && workingFilePaths.Contains(path))
                 {

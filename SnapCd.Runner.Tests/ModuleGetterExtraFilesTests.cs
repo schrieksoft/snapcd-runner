@@ -53,6 +53,7 @@ public class ModuleGetterExtraFilesTests : IDisposable
             }));
 
         mockDirectoryService.Setup(x => x.GetModuleRootDir()).Returns(_moduleRootDir);
+        mockDirectoryService.Setup(x => x.GetInitDir()).Returns(_moduleRootDir);
         mockDirectoryService.Setup(x => x.GetSnapCdDir()).Returns(_snapCdDir);
         mockDirectoryService.Setup(x => x.GetWorkingDir()).Returns(_testDir);
         mockDirectoryService.Setup(x => x.GetTempDir()).Returns(Path.Combine(_testDir, "temp"));
